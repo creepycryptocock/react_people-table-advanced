@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 
 export const Navbar = () => {
   const location = useLocation();
@@ -13,20 +13,20 @@ export const Navbar = () => {
     >
       <div className="container">
         <div className="navbar-brand">
-          <a
+          <Link
             className={`navbar-item ${location.pathname === '/' ? 'has-background-grey-lighter' : ''}`}
-            href="#/"
+            to={{ pathname: '/', search: '' }}
           >
             Home
-          </a>
+          </Link>
 
-          <a
+          <Link
             aria-current="page"
             className={`navbar-item ${location.pathname.startsWith('/people') ? 'has-background-grey-lighter' : ''}`}
-            href="#/people"
+            to={{ pathname: '/people', search: location.search }}
           >
             People
-          </a>
+          </Link>
         </div>
       </div>
     </nav>

@@ -1,19 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link, useParams } from 'react-router-dom';
+import {
+  useSearchParams,
+  Link,
+  useParams,
+  useLocation,
+} from 'react-router-dom';
 import { getPeople } from '../api';
 import { Person } from '../types';
 import { Loader } from './Loader';
 
 export const PeopleTable = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const location = useLocation();
 
   const { slug } = useParams();
   const sex = searchParams.get('sex');
   const query = searchParams.get('query');
   const centuries = searchParams.getAll('centuries');
+  const sort = searchParams.get('sort');
+  const order = searchParams.get('order');
 
   function filterPeople(_people: Person[]): Person[] {
     let persons = _people;
@@ -45,7 +53,77 @@ export const PeopleTable = () => {
     return persons;
   }
 
-  const visiblePeople = filterPeople(people);
+  function sortPeople(_people: Person[]): Person[] {
+    const peopleCopy = [..._people];
+
+    if (!sort) {
+      return peopleCopy;
+    }
+
+    peopleCopy.sort((a, b) => {
+      let valA: unknown;
+      let valB: unknown;
+
+      switch (sort) {
+        case 'name':
+          valA = a.name;
+          valB = b.name;
+          break;
+        case 'sex':
+          valA = a.sex;
+          valB = b.sex;
+          break;
+        case 'born':
+          valA = a.born;
+          valB = b.born;
+          break;
+        case 'died':
+          valA = a.died;
+          valB = b.died;
+          break;
+        default:
+          return 0;
+      }
+
+      // Ascending order
+      if (!order || order === 'asc') {
+        return valA > valB ? 1 : valA < valB ? -1 : 0;
+      }
+
+      // Descending order
+      if (order === 'desc') {
+        return valA < valB ? 1 : valA > valB ? -1 : 0;
+      }
+
+      return 0;
+    });
+
+    return peopleCopy;
+  }
+
+  const visiblePeople = sortPeople(filterPeople(people));
+
+  const toggleSort = (column: string) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (sort !== column) {
+      // First click: new column → sort ascending
+      params.set('sort', column);
+      params.set('order', 'asc');
+    } else {
+      // Same column: toggle order
+      if (!order || order === 'asc') {
+        // Second click: ascending → descending
+        params.set('order', 'desc');
+      } else if (order === 'desc') {
+        // Third click: descending → reset
+        params.delete('sort');
+        params.delete('order');
+      }
+    }
+
+    setSearchParams(params);
+  };
 
   useEffect(() => {
     const fetchPeople = async () => {
@@ -81,7 +159,10 @@ export const PeopleTable = () => {
     const linkClass = person.sex === 'f' ? 'has-text-danger' : '';
 
     return (
-      <Link to={`/people/${person.slug}`} className={linkClass}>
+      <Link
+        to={{ pathname: '/people/' + person.slug, search: location.search }}
+        className={linkClass}
+      >
         {name}
       </Link>
     );
@@ -112,14 +193,36 @@ export const PeopleTable = () => {
             >
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Sex</th>
-                  <th>Born</th>
-                  <th>Died</th>
+                  {['name', 'sex', 'born', 'died'].map(col => (
+                    <th key={col}>
+                      <a
+                        href="#"
+                        className="is-flex is-flex-wrap-nowrap"
+                        onClick={e => {
+                          e.preventDefault();
+                          toggleSort(col);
+                        }}
+                      >
+                        {col.charAt(0).toUpperCase() + col.slice(1)}
+                        <span className="icon">
+                          <i
+                            className={`fas ${
+                              sort !== col
+                                ? 'fa-sort'
+                                : order === 'asc'
+                                  ? 'fa-sort-up'
+                                  : 'fa-sort-down'
+                            }`}
+                          ></i>
+                        </span>
+                      </a>
+                    </th>
+                  ))}
                   <th>Mother</th>
                   <th>Father</th>
                 </tr>
               </thead>
+
               <tbody>
                 {visiblePeople.map(person => (
                   <tr
@@ -131,7 +234,10 @@ export const PeopleTable = () => {
                   >
                     <td>
                       <Link
-                        to={`/people/${person.slug}`}
+                        to={{
+                          pathname: '/people/' + person.slug,
+                          search: location.search,
+                        }}
                         className={person.sex === 'f' ? 'has-text-danger' : ''}
                       >
                         {person.name}
