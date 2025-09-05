@@ -1,19 +1,14 @@
-import React, { useEffect, useState } from 'react';
 import {
   useSearchParams,
   Link,
   useParams,
   useLocation,
 } from 'react-router-dom';
-import { getPeople } from '../api';
 import { Person } from '../types';
 import { Loader } from './Loader';
 
-export const PeopleTable = () => {
+export const PeopleTable = ({ people, loading, error }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [people, setPeople] = useState<Person[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const location = useLocation();
 
   const { slug } = useParams();
@@ -124,24 +119,6 @@ export const PeopleTable = () => {
 
     setSearchParams(params);
   };
-
-  useEffect(() => {
-    const fetchPeople = async () => {
-      try {
-        setLoading(true);
-        setError(false);
-        const data = await getPeople();
-
-        setPeople(data);
-      } catch (err) {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPeople();
-  }, []);
 
   // Helper to find person by name
   const findPersonByName = (name: string): Person | undefined => {
